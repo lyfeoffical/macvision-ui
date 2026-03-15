@@ -1,243 +1,272 @@
--- MacVision UI Library
+-- lyfeui Library (Modern Glassmorphism Edition)
+-- Toggle Key: LeftAlt
 
-local MacVision = {}
+local lyfeui = {}
 
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-------------------------------------------------
+-- UTILS (Animation Helpers)
+-------------------------------------------------
+local function CircleClick(gui, color)
+    spawn(function()
+        local circle = Instance.new("Frame")
+        circle.Name = "Circle"
+        circle.Parent = gui
+        circle.BackgroundColor3 = color or Color3.fromRGB(255, 255, 255)
+        circle.BackgroundTransparency = 0.7
+        circle.ZIndex = 10
+        
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(1, 0)
+        corner.Parent = circle
+        
+        circle.Position = UDim2.new(0, mouse.X - gui.AbsolutePosition.X, 0, mouse.Y - gui.AbsolutePosition.Y)
+        
+        local tween = TweenService:Create(circle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 500, 0, 500),
+            Position = UDim2.new(0, (mouse.X - gui.AbsolutePosition.X) - 250, 0, (mouse.Y - gui.AbsolutePosition.Y) - 250),
+            BackgroundTransparency = 1
+        })
+        tween:Play()
+        tween.Completed:Wait()
+        circle:Destroy()
+    end)
+end
 
 -------------------------------------------------
 -- CREATE WINDOW
 -------------------------------------------------
-
-function MacVision.new(title)
-
+function lyfeui.new(title)
     local gui = Instance.new("ScreenGui")
-    gui.Name = "MacVisionUI"
+    gui.Name = "lyfeui_Framework"
+    gui.ResetOnSpawn = false
     gui.Parent = player:WaitForChild("PlayerGui")
 
     local main = Instance.new("Frame")
-    main.Size = UDim2.new(0,540,0,330)
-    main.Position = UDim2.new(.5,-270,.5,-165)
-    main.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    main.BackgroundTransparency = .85
-    main.Active = true
-    main.Draggable = true
+    main.Size = UDim2.new(0, 580, 0, 380)
+    main.Position = UDim2.new(0.5, -290, 0.5, -190)
+    main.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Dark Theme Base
+    main.BackgroundTransparency = 0.1
+    main.ClipsDescendants = true
     main.Parent = gui
 
-    Instance.new("UICorner",main).CornerRadius = UDim.new(0,18)
+    -- Rounded Corners & Stroke
+    local mainCorner = Instance.new("UICorner", main)
+    mainCorner.CornerRadius = UDim.new(0, 12)
+    
+    local stroke = Instance.new("UIStroke", main)
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Transparency = 0.8
+    stroke.Thickness = 1.2
 
--------------------------------------------------
--- ALT TOGGLE
--------------------------------------------------
+    -- Make Draggable (Improved)
+    local dragging, dragInput, dragStart, startPos
+    main.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = main.Position
+        end
+    end)
+    UIS.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement and dragging then
+            local delta = input.Position - dragStart
+            main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
 
-    UIS.InputBegan:Connect(function(i,g)
+    -- Toggle visibility with Alt
+    UIS.InputBegan:Connect(function(i, g)
         if g then return end
         if i.KeyCode == Enum.KeyCode.LeftAlt then
             main.Visible = not main.Visible
         end
     end)
 
--------------------------------------------------
--- TITLE
--------------------------------------------------
+    -- Sidebar Area
+    local sideBar = Instance.new("Frame")
+    sideBar.Size = UDim2.new(0, 160, 1, 0)
+    sideBar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    sideBar.BackgroundTransparency = 0.2
+    sideBar.Parent = main
+    
+    Instance.new("UICorner", sideBar).CornerRadius = UDim.new(0, 12)
 
+    -- Title
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Text = title or "MacVision"
-    titleLabel.Size = UDim2.new(1,0,0,40)
+    titleLabel.Text = title or "lyfeui"
+    titleLabel.Size = UDim2.new(1, -20, 0, 50)
+    titleLabel.Position = UDim2.new(0, 15, 0, 0)
     titleLabel.BackgroundTransparency = 1
     titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextSize = 18
-    titleLabel.TextColor3 = Color3.fromRGB(30,30,30)
-    titleLabel.Parent = main
+    titleLabel.TextSize = 20
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = sideBar
 
--------------------------------------------------
--- TAB BAR
--------------------------------------------------
-
-    local tabBar = Instance.new("Frame")
-    tabBar.Size = UDim2.new(0,140,1,-40)
-    tabBar.Position = UDim2.new(0,0,0,40)
-    tabBar.BackgroundTransparency = 1
-    tabBar.Parent = main
+    -- Tab Container
+    local tabScroll = Instance.new("ScrollingFrame")
+    tabScroll.Size = UDim2.new(1, 0, 1, -60)
+    tabScroll.Position = UDim2.new(0, 0, 0, 60)
+    tabScroll.BackgroundTransparency = 1
+    tabScroll.ScrollBarThickness = 0
+    tabScroll.Parent = sideBar
 
     local tabLayout = Instance.new("UIListLayout")
-    tabLayout.Padding = UDim.new(0,6)
-    tabLayout.Parent = tabBar
+    tabLayout.Padding = UDim.new(0, 5)
+    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    tabLayout.Parent = tabScroll
 
--------------------------------------------------
--- PAGES
--------------------------------------------------
-
-    local pages = Instance.new("Frame")
-    pages.Size = UDim2.new(1,-140,1,-40)
-    pages.Position = UDim2.new(0,140,0,40)
-    pages.BackgroundTransparency = 1
-    pages.Parent = main
-
--------------------------------------------------
--- NOTIFY
--------------------------------------------------
-
-    local function Notify(text)
-
-        local n = Instance.new("TextLabel")
-        n.Size = UDim2.new(0,220,0,40)
-        n.Position = UDim2.new(1,-240,1,-60)
-        n.BackgroundColor3 = Color3.fromRGB(255,255,255)
-        n.BackgroundTransparency = .2
-        n.TextColor3 = Color3.fromRGB(30,30,30)
-        n.Font = Enum.Font.Gotham
-        n.TextSize = 14
-        n.Text = text
-        n.Parent = gui
-
-        Instance.new("UICorner",n)
-
-        task.wait(3)
-        n:Destroy()
-
-    end
+    -- Content Area
+    local contentArea = Instance.new("Frame")
+    contentArea.Size = UDim2.new(1, -170, 1, -20)
+    contentArea.Position = UDim2.new(0, 170, 0, 10)
+    contentArea.BackgroundTransparency = 1
+    contentArea.Parent = main
 
 -------------------------------------------------
 -- TAB SYSTEM
 -------------------------------------------------
-
     local window = {}
+    local firstTab = true
 
     function window:Tab(name)
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Size = UDim2.new(0, 140, 0, 35)
+        tabBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        tabBtn.BackgroundTransparency = 0.95
+        tabBtn.Text = name
+        tabBtn.Font = Enum.Font.GothamMedium
+        tabBtn.TextSize = 13
+        tabBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        tabBtn.AutoButtonColor = false
+        tabBtn.Parent = tabScroll
+        
+        Instance.new("UICorner", tabBtn).CornerRadius = UDim.new(0, 8)
 
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1,0,0,36)
-        btn.Text = name
-        btn.BackgroundColor3 = Color3.fromRGB(255,255,255)
-        btn.BackgroundTransparency = .4
-        btn.TextColor3 = Color3.fromRGB(30,30,30)
-        btn.Parent = tabBar
-
-        Instance.new("UICorner",btn)
-
-        local page = Instance.new("Frame")
-        page.Size = UDim2.new(1,0,1,0)
+        local page = Instance.new("ScrollingFrame")
+        page.Size = UDim2.new(1, 0, 1, 0)
         page.BackgroundTransparency = 1
         page.Visible = false
-        page.Parent = pages
+        page.ScrollBarThickness = 2
+        page.ScrollBarImageColor3 = Color3.fromRGB(80, 80, 80)
+        page.Parent = contentArea
 
-        local layout = Instance.new("UIListLayout")
-        layout.Padding = UDim.new(0,8)
-        layout.Parent = page
+        local pageLayout = Instance.new("UIListLayout")
+        pageLayout.Padding = UDim.new(0, 10)
+        pageLayout.Parent = page
 
-        btn.MouseButton1Click:Connect(function()
+        if firstTab then
+            page.Visible = true
+            tabBtn.BackgroundTransparency = 0.8
+            tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            firstTab = false
+        end
 
-            for _,v in pairs(pages:GetChildren()) do
-                if v:IsA("Frame") then
-                    v.Visible = false
+        tabBtn.MouseButton1Click:Connect(function()
+            for _, v in pairs(contentArea:GetChildren()) do
+                if v:IsA("ScrollingFrame") then v.Visible = false end
+            end
+            for _, v in pairs(tabScroll:GetChildren()) do
+                if v:IsA("TextButton") then
+                    TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 0.95, TextColor3 = Color3.fromRGB(180, 180, 180)}):Play()
                 end
             end
-
             page.Visible = true
-
+            TweenService:Create(tabBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0.8, TextColor3 = Color3.fromRGB(255, 255, 255)}):Play()
+            CircleClick(tabBtn, Color3.fromRGB(255, 255, 255))
         end)
 
         local tab = {}
 
 -------------------------------------------------
--- BUTTON
+-- ELEMENTS (Button, Slider, etc.)
 -------------------------------------------------
+        function tab:Button(text, callback)
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -10, 0, 40)
+            btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            btn.Text = text
+            btn.Font = Enum.Font.Gotham
+            btn.TextColor3 = Color3.fromRGB(230, 230, 230)
+            btn.TextSize = 14
+            btn.ClipsDescendants = true
+            btn.AutoButtonColor = false
+            btn.Parent = page
+            
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 8)
+            Instance.new("UIStroke", btn).Transparency = 0.8
 
-        function tab:Button(text,callback)
-
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(0,200,0,32)
-            b.Text = text
-            b.BackgroundColor3 = Color3.fromRGB(255,255,255)
-            b.BackgroundTransparency = .3
-            b.TextColor3 = Color3.fromRGB(30,30,30)
-            b.Parent = page
-
-            Instance.new("UICorner",b)
-
-            b.MouseButton1Click:Connect(callback)
-
+            btn.MouseButton1Click:Connect(function()
+                CircleClick(btn, Color3.fromRGB(255, 255, 255))
+                callback()
+            end)
         end
 
--------------------------------------------------
--- SLIDER
--------------------------------------------------
+        function tab:Slider(text, min, max, default, callback)
+            local sFrame = Instance.new("Frame")
+            sFrame.Size = UDim2.new(1, -10, 0, 50)
+            sFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+            sFrame.Parent = page
+            Instance.new("UICorner", sFrame).CornerRadius = UDim.new(0, 8)
 
-        function tab:Slider(text,min,max,callback)
+            local sLabel = Instance.new("TextLabel")
+            sLabel.Text = text .. " : " .. default
+            sLabel.Size = UDim2.new(1, -20, 0, 25)
+            sLabel.Position = UDim2.new(0, 10, 0, 5)
+            sLabel.BackgroundTransparency = 1
+            sLabel.Font = Enum.Font.Gotham
+            sLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+            sLabel.TextXAlignment = Enum.TextXAlignment.Left
+            sLabel.Parent = sFrame
 
-            local frame = Instance.new("Frame")
-            frame.Size = UDim2.new(0,220,0,40)
-            frame.BackgroundTransparency = 1
-            frame.Parent = page
+            local barBg = Instance.new("Frame")
+            barBg.Size = UDim2.new(1, -20, 0, 6)
+            barBg.Position = UDim2.new(0, 10, 0, 35)
+            barBg.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            barBg.Parent = sFrame
+            Instance.new("UICorner", barBg)
 
-            local label = Instance.new("TextLabel")
-            label.Text = text
-            label.Size = UDim2.new(1,0,0,20)
-            label.BackgroundTransparency = 1
-            label.TextColor3 = Color3.fromRGB(30,30,30)
-            label.Parent = frame
+            local fill = Instance.new("Frame")
+            fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
+            fill.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+            fill.Parent = barBg
+            Instance.new("UICorner", fill)
 
-            local bar = Instance.new("Frame")
-            bar.Size = UDim2.new(1,0,0,8)
-            bar.Position = UDim2.new(0,0,0,25)
-            bar.BackgroundColor3 = Color3.fromRGB(200,200,200)
-            bar.Parent = frame
+            local function update(input)
+                local pos = math.clamp((input.Position.X - barBg.AbsolutePosition.X) / barBg.AbsoluteSize.X, 0, 1)
+                local val = math.floor(min + (max - min) * pos)
+                sLabel.Text = text .. " : " .. val
+                TweenService:Create(fill, TweenInfo.new(0.1), {Size = UDim2.new(pos, 0, 1, 0)}):Play()
+                callback(val)
+            end
 
-            Instance.new("UICorner",bar)
-
-            bar.InputBegan:Connect(function(i)
-
-                if i.UserInputType == Enum.UserInputType.MouseButton1 then
-
-                    local pos = (UIS:GetMouseLocation().X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X
-                    local val = math.floor(min + (max-min)*pos)
-
-                    callback(val)
-
-                end
-
+            local sliding = false
+            barBg.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = true update(input) end
             end)
-
-        end
-
--------------------------------------------------
--- DROPDOWN
--------------------------------------------------
-
-        function tab:Dropdown(text,list,callback)
-
-            local d = Instance.new("TextButton")
-            d.Size = UDim2.new(0,200,0,30)
-            d.Text = text
-            d.BackgroundColor3 = Color3.fromRGB(255,255,255)
-            d.BackgroundTransparency = .3
-            d.TextColor3 = Color3.fromRGB(30,30,30)
-            d.Parent = page
-
-            Instance.new("UICorner",d)
-
-            d.MouseButton1Click:Connect(function()
-
-                local choice = list[math.random(1,#list)]
-                d.Text = text.." : "..choice
-                callback(choice)
-
+            UIS.InputChanged:Connect(function(input)
+                if sliding and input.UserInputType == Enum.UserInputType.MouseMovement then update(input) end
             end)
-
+            UIS.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+            end)
         end
 
         return tab
-
     end
 
-    window.Notify = Notify
-
     return window
-
 end
 
-return MacVision
+return lyfeui
