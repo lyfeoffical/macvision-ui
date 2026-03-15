@@ -1,97 +1,163 @@
-local LyfeUI = {}
-LyfeUI.__index = LyfeUI
+-- [[ LYFE UI PREMIUM - FULL SCRIPT ]] --
+-- Base: MacVision (Fluent)
+-- Features: Custom Loading, Profile System, Smooth Animations
 
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
-function LyfeUI.new(title)
-    local self = setmetatable({}, LyfeUI)
+local Player = Players.LocalPlayer
+local PlayerImage = "rbxthumb://type=AvatarHeadShot&id=" .. Player.UserId .. "&w=150&h=150"
+
+-- =========================================================
+-- [PART 1] LOADING SCREEN (INTRO)
+-- =========================================================
+local LoaderGui = Instance.new("ScreenGui")
+LoaderGui.Name = "LyfeLoader"
+LoaderGui.IgnoreGuiInset = true
+LoaderGui.Parent = CoreGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(1, 0, 1, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(10, 10, 10) -- ดำมินิมอล
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = LoaderGui
+
+-- รูปโปรไฟล์ผู้เล่น
+local ProfileFrame = Instance.new("ImageLabel")
+ProfileFrame.Size = UDim2.new(0, 0, 0, 0) -- เริ่มต้นจากศูนย์เพื่อทำ Pop-up
+ProfileFrame.Position = UDim2.new(0.5, 0, 0.45, 0)
+ProfileFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+ProfileFrame.Image = PlayerImage
+ProfileFrame.BackgroundTransparency = 1
+ProfileFrame.ZIndex = 2
+ProfileFrame.Parent = MainFrame
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(1, 0)
+UICorner.Parent = ProfileFrame
+
+-- ขอบเรืองแสงสำหรับรูปโปรไฟล์
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Color = Color3.fromRGB(0, 255, 200) -- สี Cyan
+UIStroke.Thickness = 2
+UIStroke.Transparency = 1
+UIStroke.Parent = ProfileFrame
+
+local LoadingText = Instance.new("TextLabel")
+LoadingText.Size = UDim2.new(0, 200, 0, 50)
+LoadingText.Position = UDim2.new(0.5, 0, 0.6, 0)
+LoadingText.AnchorPoint = Vector2.new(0.5, 0.5)
+LoadingText.BackgroundTransparency = 1
+LoadingText.Text = "PREPARING SYSTEM..."
+LoadingText.TextColor3 = Color3.fromRGB(255, 255, 255)
+LoadingText.Font = Enum.Font.GothamBold
+LoadingText.TextSize = 14
+LoadingText.TextTransparency = 1
+LoadingText.Parent = MainFrame
+
+-- [ANIMATION START]
+task.spawn(function()
+    -- รูปเด้ง Pop-up
+    TweenService:Create(ProfileFrame, TweenInfo.new(0.8, Enum.EasingStyle.Back), {Size = UDim2.new(0, 120, 0, 120)}):Play()
+    TweenService:Create(UIStroke, TweenInfo.new(0.8), {Transparency = 0}):Play()
+    task.wait(0.5)
     
-    -- สร้าง ScreenGui
-    self.Gui = Instance.new("ScreenGui")
-    self.Gui.Name = "LyfeUI"
-    self.Gui.Parent = game.CoreGui
+    -- ข้อความค่อยๆ ขึ้น
+    TweenService:Create(LoadingText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    task.wait(2) -- ระยะเวลาหน้าโหลด
     
-    -- หน้าต่างหลัก (Main Window)
-    self.Main = Instance.new("Frame")
-    self.Main.Name = "Main"
-    self.Main.Parent = self.Gui
-    self.Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- สีดำมินิมอล
-    self.Main.BorderSizePixel = 0
-    self.Main.Position = UDim2.new(0.5, -250, 0.5, -175)
-    self.Main.Size = UDim2.new(0, 500, 0, 350)
-    self.Main.ClipsDescendants = true
+    -- จางหาย (Fade Out)
+    TweenService:Create(LoadingText, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
+    TweenService:Create(ProfileFrame, TweenInfo.new(0.5), {ImageTransparency = 1}):Play()
+    TweenService:Create(UIStroke, TweenInfo.new(0.5), {Transparency = 1}):Play()
     
-    -- ขอบเรืองแสง (Stroke)
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Color = Color3.fromRGB(0, 255, 200) -- สี Cyan แบบในรูป
-    Stroke.Thickness = 1.5
-    Stroke.Parent = self.Main
+    local FinalTween = TweenService:Create(MainFrame, TweenInfo.new(0.8), {BackgroundTransparency = 1})
+    FinalTween:Play()
+    FinalTween.Completed:Connect(function()
+        LoaderGui:Destroy()
+    end)
+end)
 
-    -- มุมโค้ง
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0, 10)
-    Corner.Parent = self.Main
+-- =========================================================
+-- [PART 2] MAIN UI SYSTEM (MACVISION / FLUENT)
+-- =========================================================
+local Fluent = loadstring(game:HttpGet("https://raw.githubusercontent.com/lyfeoffical/macvision-ui/refs/heads/main/macvision.lua"))()
 
-    -- แถบเมนูด้านซ้าย (Sidebar)
-    self.Sidebar = Instance.new("Frame")
-    self.Sidebar.Name = "Sidebar"
-    self.Sidebar.Parent = self.Main
-    self.Sidebar.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    self.Sidebar.Size = UDim2.new(0, 130, 1, 0)
-    self.Sidebar.BorderSizePixel = 0
+local Window = Fluent:CreateWindow({
+    Title = "Lyfe UI Premium",
+    SubTitle = "Vision Edition",
+    TabWidth = 160,
+    Size = UDim2.fromOffset(580, 460),
+    Acrylic = true, -- พื้นหลังเบลอจางๆ (สวยมาก)
+    Theme = "Dark", -- สีดำมินิมอล
+    MinimizeKey = Enum.KeyCode.LeftControl
+})
 
-    local SidebarCorner = Instance.new("UICorner")
-    SidebarCorner.CornerRadius = UDim.new(0, 10)
-    SidebarCorner.Parent = self.Sidebar
+-- สร้าง Tabs
+local Tabs = {
+    Home = Window:AddTab({ Title = "Dashboard", Icon = "home" }),
+    Main = Window:AddTab({ Title = "Features", Icon = "zap" }),
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
+}
 
-    -- พื้นที่แสดงเนื้อหาด้านขวา (Container)
-    self.Container = Instance.new("Frame")
-    self.Container.Name = "Container"
-    self.Container.Parent = self.Main
-    self.Container.BackgroundTransparency = 1
-    self.Container.Position = UDim2.new(0, 140, 0, 10)
-    self.Container.Size = UDim2.new(1, -150, 1, -20)
+-- [หน้า DASHBOARD]
+Tabs.Home:AddParagraph({
+    Title = "WELCOME, " .. Player.DisplayName:upper(),
+    Content = "Username: " .. Player.Name .. "\nUserID: " .. Player.UserId .. "\nStatus: Premium Active"
+})
 
-    -- ใส่ชื่อโปรเจกต์
-    local Title = Instance.new("TextLabel")
-    Title.Parent = self.Sidebar
-    Title.Text = title
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.BackgroundTransparency = 1
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 14
+Tabs.Home:AddButton({
+    Title = "Sync Profile",
+    Description = "กดเพื่อรีเฟรชข้อมูลตัวละคร",
+    Callback = function()
+        Fluent:Notify({
+            Title = "System",
+            Content = "Data synchronized with server.",
+            Duration = 3
+        })
+    end
+})
 
-    -- Animation ตอนเปิด
-    self.Main.Size = UDim2.new(0, 0, 0, 0)
-    TweenService:Create(self.Main, TweenInfo.new(0.5, Enum.EasingStyle.Back), {Size = UDim2.new(0, 500, 0, 350)}):Play()
+-- [หน้า FEATURES]
+Tabs.Main:AddSection("Movement")
 
-    return self
-end
-
--- ฟังก์ชันสร้าง Tab (ทำให้ปุ่มไปโผล่ด้านซ้าย)
-function LyfeUI:Tab(name)
-    local TabButton = Instance.new("TextButton")
-    TabButton.Parent = self.Sidebar
-    -- (ในนี้ต้องมีโค้ดจัดการ Layout และการสลับหน้าจอ ซึ่งจะยาวมาก)
-    -- ผมใส่ตัวอย่างปุ่มไว้ให้ดูว่ามันจะไม่โล่ง
-    TabButton.Size = UDim2.new(0.9, 0, 0, 30)
-    TabButton.Position = UDim2.new(0.05, 0, 0, 50)
-    TabButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    TabButton.Text = name
-    TabButton.TextColor3 = Color3.fromRGB(200, 200, 200)
-    TabButton.Font = Enum.Font.Gotham
-    
-    local bCorner = Instance.new("UICorner")
-    bCorner.CornerRadius = UDim.new(0, 5)
-    bCorner.Parent = TabButton
-
-    return {
-        Button = function(_, text, callback)
-            -- โค้ดสร้างปุ่มด้านขวา
+Tabs.Main:AddSlider("WalkSpeed", {
+    Title = "Speed Hack",
+    Description = "ปรับความเร็วการวิ่ง",
+    Default = 16,
+    Min = 16,
+    Max = 500,
+    Rounding = 1,
+    Callback = function(Value)
+        if Player.Character and Player.Character:FindFirstChild("Humanoid") then
+            Player.Character.Humanoid.WalkSpeed = Value
         end
-    }
-end
+    end
+})
 
-return LyfeUI
+Tabs.Main:AddToggle("InfJump", {
+    Title = "Infinite Jump",
+    Description = "กระโดดได้รัวๆ ไม่ตกดิน",
+    Default = false,
+    Callback = function(Value)
+        _G.InfJump = Value
+    end
+})
+
+-- ฟังก์ชันกระโดดไม่จำกัด
+game:GetService("UserInputService").JumpRequest:Connect(function()
+    if _G.InfJump and Player.Character and Player.Character:FindFirstChildOfClass("Humanoid") then
+        Player.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
+    end
+end)
+
+-- [จบการตั้งค่า]
+Window:SelectTab(1)
+
+-- แจ้งเตือนเมื่อ UI พร้อม
+Fluent:Notify({
+    Title = "Lyfe UI",
+    Content = "Script has been loaded successfully!",
+    Duration = 5
+})
